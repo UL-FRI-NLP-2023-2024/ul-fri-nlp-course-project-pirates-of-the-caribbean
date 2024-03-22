@@ -4,4 +4,4 @@ This project focuses on investigating parameter-efficient techniques for fine-tu
 
 ## Initial results
 
-Using prefix-tuning on SloBERTa, we managed to get 0.625 accuracy on initial tests (prefix_tuning_BoolQ.ipynb) of SloBench's BoolQ dataset. 
+Using prefix-tuning on SloBERTa, we managed to get 0.625 accuracy on initial tests (prefix_tuning_BoolQ.ipynb) on SloBench's BoolQ dataset. 
