@@ -20,7 +20,8 @@
 %----------------------------------------------------------------------------------------
 \documentclass[fleqn,moreauthors,10pt]{ds_report}
 \usepackage[english]{babel}
-
+\usepackage{booktabs} % Better Tables
+\usepackage{subcaption}
 \graphicspath{{fig/}}
 
 
@@ -145,6 +146,129 @@ Our proposed methodology is as follows (sketch):
     \item Using HuggingFace's PEFT library, apply various prominant PEFT techniques such as LoRa, Bias Update, and Soft Prompts to fine-tune the LMs on different downstream tasks.
     \item Use SloBench to evaluate fine-tuned models, comparing performance across different PEFT methods and NLP tasks.
 \end{enumerate}
+
+\section{Results}
+This section outlines the benchmarking results for various Slovene and multilingual large language models (LLMs) applied to different NLP tasks, including Sentiment Analysis (SA), Named Entity Recognition (NER), Dependency Parsing (DP), Natural Language Inference (NLI), and Coreference Resolution (CR). We evaluated the performance using popular Parameter-Efficient Fine-Tuning (PEFT) methods to determine their effectiveness across these different langauage processing tasks.
+
+\subsection{Natural Language Inference (NLI)}
+NLI involves determining whether a "premise" sentence logically supports, contradicts, or is neutral to a "hypothesis" sentence. Using the SI-NLI dataset, this study uses $5,937$ Slovene sentence pairs from the Slovenian reference corpus ccKres, each manually annotated with labels of "entailment," "\textit{contradiction}," or "\textit{neutral}."
+For computational processing, the experiments were performed on an NVIDIA GeForce RTX 3050 Ti\footnote{We will conduct the experiments on the cluster next.} with PyTorch and the Hugging Face Transformers library.
+
+\begin{table}[ht]
+\centering
+\caption{Performance Comparison on SI-NLI}
+\label{tab:nli_results}
+\small
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Model & PEFT Method & Accuracy & F1 Score & Training Time (m)\\ \midrule
+SloBERTa & LoRa & 69.7\% & 69.7\% & 32.6 \\
+SloBERTa & Prefix Tuning & 36.7\% & 34.2\% & 24.6 \\
+SloBERTa & IA3 & 31.5\% & 21.7\% & 24.9 \\
+BBMU & LoRa & 50.8\% & 50.7\% & 26.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Name Entity Recognition (NER)}
+The objective of NER is to identify specific key elements in the words of a sentence. For instance, an NER model may be able to identify when a text mentions or refers to a person, a particular location, an organization, etc. In this experiment we use the SSJ500K training dataset to benchmark several PEFT techniques in the same LM as in the previous task: the slovene language specific \textit{SloBERTa} and the multilingual \text{Bert-Base-Multilingual-Uncased} (BBMU). The corpus contains about 500.000 manually annotated tokens for token-level classication in the slovene language. Furthermore, it contains several subsets for different tasks; we used the NER subset which contains roughly 9,500 manually annotated sentences using the entities of the CoNLL-2003 shared task. The experiment was performed using kaggle's computing resources with a P100 GPU and using the libraries Hugging Face PEFT, transformers and PyTorch.
+
+\begin{table}[ht]
+\centering
+\caption{\textbf{Performance Comparison on SSJ500K's NER subset} The table shows the result of training the {\it SloBERTa} and {\it Bert-Based-Multilingual-Uncased} (BBMU) models using different PEFT techniques and Full Fine-Tunning (FFT) as a baseline in the NER subset of the SSJ500k corpus. All results where generated using three training epochs with batches of 16 samples.}
+\label{tab:ner_results}
+\small
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Model & PEFT Method & Precision & F1 Score & Training Time (s)\\ \midrule
+SloBERTa & FFT & 85.1\% & 87.3\% & 180.8 \\
+SloBERTa & LoRA & 85.8\% & 87.9\% & 145.2 \\
+SloBERTa & Prefix Tuning & 80.3\% & 83.7\% & 114.85 \\
+SloBERTa & IA3 & 82.5\% & 85.6\% & 123.3 \\
+BBMU & FFT & 80.8\% & 82.5\% & 250.2 \\
+BBMU & LoRA & 79.3\% & 80.7\% & 184.6 \\
+BBMU & Prefix Tunning & 74.4\% & 80.3\% & 153.8 \\
+BBMU & IA3 & 68.1\% & 74.5\% & 160.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The results show decent performance of almost all methods with the \textit{SloBERTa} model, with LoRa even surpassing full fine-tuning with the same amount of training epochs and batch size. Furthermore, all methods reduced considerably the training time over full fine tuning. In fact, Prefix Tuning almost halfs the training time of FFT for both models (training time is 63\% of FFT for \textit{SloBERTa} and 61.5\% for BBMU). Furthemore, of all techniques LoRA performs by far the best. This is expected as LoRa has proven efficacy. Regarding the other methods, it's surprising that such a simple method as Prefix Tuning can outperform IA3 by such a wide margin in one of the models, specially considering IA3 is intended to be an improvement on LoRA. In further experiments we'll seek to verify this finding by tuning the hyperparameters of the techniques more thoroughly.
+
+Regarding the performance comparison between the two models, it seems \textit{SloBERTa} performs better overall in all experiments. This is to be expected given \textit{SloBERTa} was specifically trianed to perform well in slove. Additionally, it seems that it responds better to PEFT techniques, hinting at the fact that these techniques may not be as efficient when some cross-lingual transfer learning is required, such as the one required to fine-tune the BBMU model.
+
+\subsection{Dependency Parsing}
+
+Using a different subset from the previous SSJ500k dataset we developed further experiments to evaluate the techniques' performance in Depedency Parsing. In particular, we wanted to predict for each word, the relation to its root. The subset we used contains about 11 400 synthetically annotated sentences with their corresponding dependency tree. Each word has assigned both a relation to its head or root and an index identifying the mentioned root. We used the same experimental setup as in the previous NER task. The results can be seen in table \ref{tab:dependency_parsing-results}.
+
+\begin{table}[ht]
+\centering
+\caption{\textbf{Performance Comparison on SSJ500K's Depedency Parsing subset} The table shows the result of training the {\it SloBERTa} and BBMU models using different PEFT techniques and Full Fine-Tunning (FFT) as a baseline in the Dependency Parsing task subset of the SSJ500k corpus. All results where generated using three training epochs with batches of 32 samples.}
+\label{tab:dependency_parsing-results}
+\small
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Model & PEFT Method & Precision & F1 Score & Time (s)\\ \midrule
+SloBERTa & FFT & 93.1\% & 93.1\% & 218.6 \\
+SloBERTa & LoRA & 94.0\% & 94.0\% & 174.34 \\
+SloBERTa & Prefix Tuning & 91.1\% & 91.0\% & 150.9 \\
+SloBERTa & IA3 & 92.1\% & 92.0\% & 157.5 \\
+BBMU & FFT & 90.3\% & 90.3\% & 305.5 \\
+BBMU & LoRA & 90.6\% & 90.6\% & 235.4 \\
+BBMU & Prefix Tunning & 85.7\% & 85.3\% & 207.1 \\
+BBMU & IA3 & 86.0\% & 85.6\% & 211.7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In this task we observe similar results as in the previous one. As before LoRA achieves by far the best results in both models, surpassing FFT with significantly lower training times. However, it seems Prefix Tuning never performs better than IA3. The reason for this may be that the task is relatively more complex, requiring the model to discover deeper relationships between the tokens than in NER, so a more complex approach that focuses on enhancing the attention mechanism of the models may be a better strategy to tackle it. Overall, it seems that PEFT techniques perform quite well, specially with the \textit{SloBERTa} model, obtaining similar or even superior results with significantly reduced training times.
+
+Regarding the comparison between the models, similar results are observed as with the NER task: the performance is better in the slovene specific \textit{SloBERTa} and the PEFT methods are less effective in the multilingual model. 
+
+\subsection{Recognizing Textual Entailment (RTE)}
+In this section, we analyze how LoRA fine tunning influnces over the F1 Scores over the SuperGlue Human based RTE dataset. 
+
+In this experiment, the \textit{SloBERTa} model is fine-tuned on the RTE dataset utilizing the Low-Rank Adaptation (LoRA) approach to explore the impact of various hyperparameters on the model's performance, particularly focusing on the F1 score. The experiment iteratively tests combinations of three key hyperparameters: \( r \), \( \alpha \), and \textit{weight decay}.
+
+\begin{itemize}
+    \item \textbf{\( r \) (rank):} This parameter determines the rank of the adaptation in LoRA, which affects the model's capacity to learn new patterns without significantly increasing complexity. Values explored were [8, 16, 32], enabling an investigation into how increasing the rank influences learning capacity and generalization.
+    \item \textbf{\( \alpha \) (scaling factor):} This controls the scaling of the updates in LoRA, impacting how aggressively the model adapts to the new dataset. Tested values were [16, 32, 64], providing insights into finding a balance between overly subtle and overly aggressive updates.
+    \item \textbf{Weight Decay (regularization):} Used to prevent overfitting by penalizing larger weights, with values set at [0.01, 0.1, 0.2]. This parameter explores how varying levels of regularization affect overfitting and model performance on validation data.
+\end{itemize}
+
+The function used for this experiment orchestrates a grid search over these parameters, training the \textit{SloBERTa} model for each configuration and logging the F1 score to identify the optimal setup. The configuration leading to the highest F1 score is noted as the best, reflecting the most effective balance of learning capacity, adaptability, and regularization for this task. Metrics and configurations are saved, and the best model setup is printed, showcasing the impact of tuning LoRA parameters on model efficacy in a sequence classification task on the RTE dataset. The results can be observed in the figure \ref{fig:lora_params} where the best parameters to be used under this configuration are $r$=16, $\alpha$=64, weight decay=0.1. The best F1 Score achieved with \textit{SloBERTa} was about 0.52 over this dataset, the future work will be focused on compare more models to see which one performs better in this dataset that represents a challenge since it is small and in Slovene.
+\begin{figure}[ht!]
+\centering
+
+% First subfigure
+\begin{subfigure}[b]{0.89\linewidth} % Adjust width to fit the column width
+    \centering
+    \includegraphics[width=\textwidth]{alpha_on_F1_Score.pdf}
+    \caption{Influence of $\alpha$ o in the F1-Score}
+    \label{fig:image1}
+\end{subfigure}
+
+% Second subfigure
+\begin{subfigure}[b]{0.89\linewidth}
+    \centering
+    \includegraphics[width=\textwidth]{r_on_F1_Score.pdf}
+    \caption{Influence of $r$ or in the F1-Score}
+    \label{fig:image2}
+\end{subfigure}
+
+% Third subfigure
+\begin{subfigure}[b]{0.89\linewidth}
+    \centering
+    \includegraphics[width=\textwidth]{weight_decay_on_F1_Score.pdf}
+    \caption{Influence of weight decay on thein F1-Score}
+    \label{fig:image3}
+\end{subfigure}
+
+\caption{Different LoRA fine- tunning configurations, results over the F1 Scores using the SuperGlue Human based RTE dataset}
+\label{fig:lora_params}
+\end{figure}
+
+
 
 
 % \subsection*{Equations}
