@@ -11,4 +11,4 @@
 #SBATCH --job-name="NLP DP Benchmark"
 
 srun singularity exec --nv ../containers/nlp_benchmark.sif python \
-    "nli_benchmark.py"
+    "$1"
