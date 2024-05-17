@@ -5,12 +5,12 @@
 #SBATCH --gpus=1
 #SBATCH --partition=gpu
 #SBATCH --time=01:30:00
-#SBATCH --output=logs/nlp-benchmark-DP-ner-%J.out
-#SBATCH --error=logs/nlp-benchmark-DP-%J.err
+#SBATCH --output=logs/nlp-benchmark-%J.out
+#SBATCH --error=logs/nlp-benchmark-%J.err
 #SBATCH --job-name="NLP DP Benchmark"
 
 
 for i in {1..5}
 do
-    singularity exec --nv ../containers/nlp_benchmark.sif python3 "$1"
+    singularity exec --nv ../containers/nlp_benchmark.sif python3 "$1" "$i"
 done
