@@ -33,6 +33,7 @@ SuperGLUE-GoogleMT/
 SuperGLUE-HumanT/
 bert-base-multilingual-cased-RTE/
 bert-base-multilingual-cased_RTE_FINAL/
+bert-base-multilingual-cased-sentinews/
 models/
 results/
 roberta-base-rte_RTE_FINAL/
