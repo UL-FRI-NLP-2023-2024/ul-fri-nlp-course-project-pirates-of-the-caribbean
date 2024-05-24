@@ -23,6 +23,7 @@
 \usepackage{booktabs} % Better Tables
 \usepackage{subcaption}
 \graphicspath{{fig/}}
+\usepackage{svg}
 
 
 
@@ -32,14 +33,14 @@
 %----------------------------------------------------------------------------------------
 
 % Header
-\JournalInfo{FRI Natural language processing course 2021}
+\JournalInfo{FRI Natural language processing course 2024}
 
 % Interim or final report
 \Archive{Project report} 
 %\Archive{Final report} 
 
 % Article title
-\PaperTitle{Parameter-Efficient Fine-Tuning of Language Models for Slovene} 
+\PaperTitle{Efficient Fine-Tuning Techniques for Slovene Language Models} 
 
 % Authors (student competitors) and their info
 \Authors{Camile Lenderling, Manfred González, and Joaquín Figueira}
@@ -57,7 +58,7 @@
 %----------------------------------------------------------------------------------------
 
 \Abstract{
-This work adapts and evaluates several parameter efficient finetuning techniques (PEFT) for large language models pre-trained on the Slovenian language. It focuses on methods based on LoRA, bias update and prefix tuning. The performance of these methods is assessed with SloBENCH, and evaluation framework for the Slovenian language, and focuses on natural language understanding (NLU) and machine translation tasks (MT). Results are compared with previous submissions to the evaluation framework to determine the relative effectiveness of PEFT methods in a Slovenian linguistic context.  
+This work adapts and evaluates several parameter-efficient finetuning techniques (PEFT) for two large language models: the Slovenian-specific \textit{SloBERTa} and the cross-lingual BERT-Base-Multilingual-Uncased. The study examines methods based on LoRA, bias update, prefix tuning and IA3. Performance is assessed using benchmarks from SloBENCH, a Slovenian language evaluation framework, focusing on the following tasks: natural language understanding, named entity recognition, dependency parsing, and textual entailment recognition. The techniques and models are compared in terms of performance, memory consumption, and runtime.
 }
 
 %----------------------------------------------------------------------------------------
@@ -81,13 +82,13 @@ This work adapts and evaluates several parameter efficient finetuning techniques
 
     Large language models and, by extension, language models (LM) in general are becoming ubiquitous in the current technological landscape. As such, the amount of tasks and applications that are being performed by, or with the help of these models is continuously growing. Until recently, LMs were built for specific taks, but with the advent of LLMs this has become both unnecessary, as models are complex enough now that they can perform multiple tasks well out-of-the-box, and unfeasible, as building these models takes an enormous amount of computational resources. However, if one is to achieve the optimal performance on a given task or expand the capabilities of a LM, some adaptations of the model are in order.
     
-    These adaptations usually come in the form of a process called finetuning, in which the parameters of an already pretrained language model (PLM) are fitted for the specific task we want to achieve. Nonetheless, given the massive amount of parameters in modern LLMs, full finetuning (FFT) of the weights of a model is usually too computationally prohibitive for most applications. As a result, in the recent years many techniques have been developed to efficiently tune LMs, focusing specifically in reducing the amount of parameters that actually have to be trained (a comprehensive review of this techniques can be found on \cite{survey}). These are usually referred to with the umbrella term parameter efficient fine-tuning techniques (PEFT) and are mainly based on the Lottery Ticket Hypothesis, which states that ``large models are needed in pretraining only to induce (in high probability) the existence of sub-networks initialized with the correct inductive bias for learning.''. In other words, that PLMs already contain the capacity and linguistic ``knowledge'' to perform a wide variety of tasks, but this abilities need to be accentuated through the proper learning stimulus that induces the use of the correct sub-networks when performing a particular task. 
+    These adaptations usually come in the form of a process called fine-tuning, in which the parameters of a pre-trained language model (PLM) are fitted for the specific task we want to achieve. Nonetheless, given the vast number of parameters of parameters in current LLMs, full fine-tuning (FFT) of the weights of a model is usually too computationally prohibitive for most applications. As a result, in the recent years many techniques have been developed to efficiently tune LMs, focusing specifically in reducing the number of trainable parameters (a comprehensive review of this techniques can be found on \cite{survey}). These are usually referred to as parameter efficient fine-tuning techniques (PEFT) and are mainly based on the Lottery Ticket Hypothesis, which states that ``large models are needed in pre-training only to induce (in high probability) the existence of sub-networks initialized with the correct inductive bias for learning.''. In other words, that PLMs already contain the capacity and linguistic ``knowledge'' to perform a wide variety of tasks, but these abilities need to be accentuated through the proper learning stimulus that induces the use of the correct sub-networks when performing a particular task. 
 
-    The purpose of this work is precisely to adapt and evaluate several PEFT techniques with a focus on the Slovenian language. To cover a wide range of approaches the analyzed techniques will span different families: LoRA\cite{hu2022lora} and its derivatives, bias update\cite{bitfit} and soft prompt based techniques. As a base model for analysis the SloBERT LM will be used, which is a BERT model optimized for Slovenian. For performance assessment the techniques will be assessed on multiple NLP tasks focused on natural language understanding (NLU) and machine translation (MT) using some of the NLP benchmarks provided in the Slobench Slovenian evaluation framework, mainly the Slovene SuperGLUE and Machine Translation (SLO - ENG) benchmarks. A final analysis will also be provided comparing the results of the fine-tuned models with the metrics from previous submissions to Slobench of the same benchmarks. \\
+    The purpose of this work is precisely to adapt and evaluate several PEFT techniques with a focus on the Slovenian language. To cover a wide range of approaches the analyzed techniques will span different families: LoRA\cite{hu2022lora} and its derivatives, bias update\cite{bitfit} and soft prompt based techniques. As a base model for analysis the SloBERTa LM will be used, which is a BERT model optimized for Slovenian. For performance assessment the techniques will be evaluated on multiple NLP tasks focused on natural Natural Language Inference (NLI), Name Entity Recognition (NER), Dependency Parsing (DP) and Textual Entailment Recognition (RTE) of the benchmarks provided on the Slobench Slovenian evaluation framework.
 
 
 %------------------------------------------------
-
+\newpage
 \section*{Methods}
 
 \subsection*{LoRA}
@@ -106,29 +107,12 @@ BitFit\cite{bitfit} is the first recorded technique to have implemented a sparse
 
 The findings of the initial BitFit paper were further expanded in the works of Lawton et al.\cite{us-bitfit} using neural architecture search (NAS), more specifically, iterative network pruning. The core idea of the method is to iteratively fine-tune the model using BitFit\footnote{The authors also fine-tuned the models using LoRA, but that falls outside of the scope of this analysis.} and then prune it's bias parameters according to a criteria based on the first order approximation of the loss that results from eliminating certain parameters from the network. The authors found that the resulting network architectures could maintain good performance with a large portion of their bias parameters pruned, further solidifying the findings in the initial BitFit paper that only a relatively small number of bias parameters are responsible for the fine-tuned performance. Unfortunately, there is no code or implementation freely available to replicate the results of this technique in our work.
 
+\subsection* {IA3}
 
-\iffalse
-- Sparse-finetunning technique
-- Only updates bias-terms of attention modules
-- Main hypothesis: finetunning is about exposing knowledge induced by language-modeling training?
-- Trains only 0.1% of parameters
-    - Even Lower if we only train the bias of the query encoders and third layer of FF. In this case it trains 0.04% of parameters.
-- \textbf{Results:}
-    - Achieves similar performance than FFT in the Glue benchmark using LargeBert (question: finetunes for each task?), and similar or better performance than other comparable techniques at the time with only a fraction of the parameters they use
-    - BitFit is more data efficient than FFT: it achieves better results then FFT in small-medium data regimes
-
-\textbf{Lottery Ticket Hypothesis}
-
-(Frankle and Carbin, 2019; Chen et al., 2020; Prasanna et al., 2020) 
-
-\textit{Include in introduction}
-
-The conjecture that large models are needed in pretraining only to induce (in high probability) the existing of sub-networks initialized with the correct inductive bias for learning.
-
-\fi
+IA3 (Infused Adapter for Attention Approximation) \cite{ia3} is a PEFT technique that focuses on modifying the attention mechanism of a language model by introducing lightweight, learnable adapters that adjust its attention scores. This approach allows for significant reductions in the number of trainable parameters, making fine-tuning more resource-efficient while maintaining or even improving performance on specific downstream tasks. IA3 achieves this by infusing additional parameters only in critical parts of the attention mechanism, thus preserving the core structure and pre-trained knowledge of the original model. The main advantage of IA3 with respect to other PEFT techniques is precisely this infusion mechanism of the learnable parameters, which means that no additional weights have to be added to the model after training and hence inference time remains unchanged.
 
 \subsection*{Soft prompts}
-Soft prompts, represent various methods to efficiently adapt LLMs for down-stream tasks without altering the underlying model architecture or weights. This technique involves appending a sequence of tunable tokens, or "soft prompts," to the input of the model. During fine-tuning, these tokens are optimized to guide the model towards generating the desired task-specific output. Two prominent methods for implementing soft prompts are prompt tuning and prefix tuning. 
+Soft prompts, represent various methods to efficiently adapt LLMs for down-stream tasks without altering the underlying model architecture or weights. This technique involves appending a sequence of tunable tokens, or "soft prompts," to the input of the model. During fine-tuning, these tokens are optimized to guide the model towards generating the desired task-specific output. Two prominent methods for implementing soft prompts are prompt tuning and prefix tuning (P-tunning). 
 
 \subsubsection*{Prompt tuning}
 Prompt tuning introduces a set of $\ell$ learnable tokens (soft prompts), denoted as $P =  \{P_1, P_2, \dots P_\ell$\},  and concatenates these tokens to beginning of the input to the model $X \in \mathbb{R}^{n\times d}$ to form $\hat{X} \in \mathbb{R}^{(n + \ell) \times d}$. Throughout the fine-tuning process, only the parameters associated with the prompt tokens $P$ are adjusted via gradient descent, while the pre-trained model parameters are kept fixed. Hence, the length of the prompt and the dimensionality of the token embeddings determine the parameter cost for fine-tuning.~\cite{prompt_tuning} 
@@ -138,21 +122,25 @@ Prefix-tuning introduces the idea of appending a set of soft prompts $P =  \{P_1
 
 
 \section{Proposed Methodology}
-Our proposed methodology is as follows (sketch):
-\begin{enumerate}
-    \item Select and preprocess datasets from the SloBench framework.
-    \item Format data for NLP tasks using appropriate tokenizers for SloBERTa and other multilingual LMs.
-    \item Establish performance baselines for the untuned SloBERTa and other selected multilingual LLMs.
-    \item Using HuggingFace's PEFT library, apply various prominant PEFT techniques such as LoRa, Bias Update, and Soft Prompts to fine-tune the LMs on different downstream tasks.
-    \item Use SloBench to evaluate fine-tuned models, comparing performance across different PEFT methods and NLP tasks.
-\end{enumerate}
+This section outlines the methodology used in our experiments, covering data preparation, model fine-tuning, evaluation, and resource measurement.
+
+\subsection{Data Preperation}
+We began by selecting datasets from the SloBench framework, specifically focusing on the tasks of Natural Language Inference (NLI), Named Entity Recognition (NER), Dependency Parsing (DP), and Recognizing Textual Entailment (RTE). The SI-NLI dataset was chosen for NLI, the SSJ500K dataset was used for both NER and DP, and the SuperGlue Human-based RTE dataset was employed for the RTE task. Data preprocessing involved tokenizing the text using appropriate tokenizers for SloBERTa and BERT-Base-Multilingual-Uncased (BBMU) models.
+
+\subsection{Fine-Tuning Techniques}
+We implemented four PEFT methods: LoRA (Low-Rank Adaptation), Bias Update (BitFit), IA3 (Infused Adapter for Attention Approximation), and Prefix Tuning. These methods were selected to cover a range of approaches, from modifying attention mechanisms to introducing trainable tokens. Each technique offers a different strategy for reducing the number of trainable parameters, freezing different parts of the language models to gain resource efficiency.
+
+\subsection{Experimental Setup}
+All experiments were conducted on a Tesla V100 GPU on the Arnes HPC cluster. Training parameters such as batch size, number of epochs, and learning rates were standardized across all methods to ensure fair comparisons. For each PEFT technique, we fine-tuned the SloBERTa and BBMU models on the selected datasets. Training was performed for a fixed number of epochs. 
+
+\subsection{Evaluation Metrics}
+We assessed model performance using standard metrics: precision, recall, and F1-score. These metrics were chosen to provide a comprehensive view of model accuracy and balance between precision and recall. Additionally, memory consumption and runtime during training were recorded for each PEFT method to evaluate the trade-off between performance and resource efficiency.
 
 \section{Results}
 This section outlines the benchmarking results for various Slovene and multilingual large language models (LLMs) applied to different NLP tasks, including Sentiment Analysis (SA), Named Entity Recognition (NER), Dependency Parsing (DP), Natural Language Inference (NLI), and Coreference Resolution (CR). We evaluated the performance using popular Parameter-Efficient Fine-Tuning (PEFT) methods to determine their effectiveness across these different langauage processing tasks.
 
 \subsection{Natural Language Inference (NLI)}
 NLI involves determining whether a "premise" sentence logically supports, contradicts, or is neutral to a "hypothesis" sentence. Using the SI-NLI dataset, this study uses $5,937$ Slovene sentence pairs from the Slovenian reference corpus ccKres, each manually annotated with labels of "entailment," "\textit{contradiction}," or "\textit{neutral}."
-For computational processing, the experiments were performed on an NVIDIA GeForce RTX 3050 Ti\footnote{We will conduct the experiments on the cluster next.} with PyTorch and the Hugging Face Transformers library.
 
 \begin{table}[ht]
 \centering
@@ -161,17 +149,37 @@ For computational processing, the experiments were performed on an NVIDIA GeForc
 \small
 \begin{tabular}{@{}llccc@{}}
 \toprule
-Model & PEFT Method & Accuracy & F1 Score & Training Time (m)\\ \midrule
-SloBERTa & LoRa & 69.7\% & 69.7\% & 32.6 \\
-SloBERTa & Prefix Tuning & 36.7\% & 34.2\% & 24.6 \\
-SloBERTa & IA3 & 31.5\% & 21.7\% & 24.9 \\
-BBMU & LoRa & 50.8\% & 50.7\% & 26.3 \\
+Model & PEFT Method & Accuracy & F1 Score & Time (s)\\ \midrule
+SloBERTa & LoRa & 68.5\% & \textbf{68.0}\% & 260.5 \\
+SloBERTa & Prefix Tuning & 35.3\% & 28.9\% & 235.1 \\
+SloBERTa & IA3 & 54.9\% & 56.4\% & 245.1 \\
+SloBERTa & BitFit & 33.8\% &20.3\% & 106.1\\
+SloBERTa & Full & 49.5\% & 47.7\% & 323.3 \\
+BBMU & LoRa & 51.7\% & 50.8\% & 297.8 \\
+BBMU & Prefix Tuning & 43.8\% & 44.0\% & 237.7 \\
+BBMU & IA3 & 52.3\% & \textbf{51.6}\% & 247.2 \\
+BBMU & BitFit & 32.2\% & 22.8\% & 107.2 \\
+BBMU & Full & 51.1\% & 46.6\% & 321.4 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+The above results indicate that SloBERTa with LoRa achieves the highest accuracy (68.5\%) and F1 score (68.0\%), while BitFit shows the lowest performance for both models, with accuracies of 33.8\% and 32.2\%. IA3 offers a moderate performance, and Full fine-tuning results in varied outcomes. Training times range from $235$ to $323$ seconds, highlighting efficiency differences among methods.
+
+\begin{figure}[ht]
+    \centering
+    \includesvg[width=.5\textwidth]{fig/memory_vs_f1_score_nli.svg}
+    \caption{Memory (MB) vs. F1-score for various models and PEFT methods for the SI-NLI task. }
+    \label{fig:memory_vs_f1}
+\end{figure}
+
+In Figure \ref{fig:memory_vs_f1} we observe that  the relationship between memory usage and F1-score performance does not strictly follow the expected exponential trend. Typically, one would expect that increasing computational resources (memory) leads to a proportional increase in performance. However, our results show that this is not always the case.
+
+Methods such as LoRa and IA3 for the SloBERTa model demonstrate high F1 scores with relatively lower memory usage compared to other methods. This suggests that these PEFT methods are more efficient, providing better performance without the need for many computational resources. However, BitFit has lower performance despite its lower memory requirements, indicating that not all PEFT methods offer the same benefits. 
+
+
 \subsection{Name Entity Recognition (NER)}
-The objective of NER is to identify specific key elements in the words of a sentence. For instance, an NER model may be able to identify when a text mentions or refers to a person, a particular location, an organization, etc. In this experiment we use the SSJ500K training dataset to benchmark several PEFT techniques in the same LM as in the previous task: the slovene language specific \textit{SloBERTa} and the multilingual \text{Bert-Base-Multilingual-Uncased} (BBMU). The corpus contains about 500.000 manually annotated tokens for token-level classication in the slovene language. Furthermore, it contains several subsets for different tasks; we used the NER subset which contains roughly 9,500 manually annotated sentences using the entities of the CoNLL-2003 shared task. The experiment was performed using kaggle's computing resources with a P100 GPU and using the libraries Hugging Face PEFT, transformers and PyTorch.
+The objective of NER is to identify specific key elements in the words of a sentence. For instance, an NER model may be able to identify when a text mentions or refers to a person, a particular location, an organization, etc. In this experiment we use the SSJ500K training dataset to benchmark several PEFT techniques in the same LM as in the previous task: the slovene language specific \textit{SloBERTa} and the multilingual \text{Bert-Base-Multilingual-Uncased} (BBMU). The corpus contains about 500.000 manually annotated tokens for token-level classication in the slovene language. Furthermore, it contains several subsets for different tasks; we used the NER subset which contains roughly 9,500 manually annotated sentences using the entities of the CoNLL-2003 shared task. 
 
 \begin{table}[ht]
 \centering
@@ -180,59 +188,111 @@ The objective of NER is to identify specific key elements in the words of a sent
 \small
 \begin{tabular}{@{}llccc@{}}
 \toprule
-Model & PEFT Method & Precision & F1 Score & Training Time (s)\\ \midrule
-SloBERTa & FFT & 85.1\% & 87.3\% & 180.8 \\
-SloBERTa & LoRA & 85.8\% & 87.9\% & 145.2 \\
-SloBERTa & Prefix Tuning & 80.3\% & 83.7\% & 114.85 \\
-SloBERTa & IA3 & 82.5\% & 85.6\% & 123.3 \\
-BBMU & FFT & 80.8\% & 82.5\% & 250.2 \\
-BBMU & LoRA & 79.3\% & 80.7\% & 184.6 \\
-BBMU & Prefix Tunning & 74.4\% & 80.3\% & 153.8 \\
-BBMU & IA3 & 68.1\% & 74.5\% & 160.6 \\
+Model & Method & Precision & F1 score & Training Time (s)\\ \midrule
+SloBERTa & LoRA & 85.7\% & 88.2\% & 85.5 \\
+SloBERTa & P-Tuning & 80.8\% & 84.0\% & 68.3 \\
+SloBERTa & IA3 & 82.3\% & 85.3\% & 40.2 \\
+SloBERTa & BitFit & 14.9\% & 16.9\% & 72.5\\
+SloBERTa & FFT & 85.8\% & 88.0\% & 107.5 \\
+BBMU & LoRA & 80.0\% & 82.3\% & 115.2 \\
+BBMU & P-Tunning & 75.1\% & 78.5\% & 89.8 \\
+BBMU & IA3 & 65.1\% & 68.5\% & 95.3 \\
+BBMU & BitFit & 17.4\% & 18.5\% & 94.2\\
+BBMU & FFT & 80.9\% & 82.8\% & 153.2 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The results show decent performance of almost all methods with the \textit{SloBERTa} model, with LoRa even surpassing full fine-tuning with the same amount of training epochs and batch size. Furthermore, all methods reduced considerably the training time over full fine tuning. In fact, Prefix Tuning almost halfs the training time of FFT for both models (training time is 63\% of FFT for \textit{SloBERTa} and 61.5\% for BBMU). Furthemore, of all techniques LoRA performs by far the best. This is expected as LoRa has proven efficacy. Regarding the other methods, it's surprising that such a simple method as Prefix Tuning can outperform IA3 by such a wide margin in one of the models, specially considering IA3 is intended to be an improvement on LoRA. In further experiments we'll seek to verify this finding by tuning the hyperparameters of the techniques more thoroughly.
+The results show decent performance of almost all methods with the \textit{SloBERTa} model, with LoRa even surpassing full fine-tuning with the same amount of training epochs and batch size. Furthermore, all methods reduced considerably the training time over full fine tuning. In fact, Prefix Tuning almost halved the training time of FFT for the \textit{SloBERTa} model, achieving a training time of only 63\% of that of FFT. Additionally, of all techniques LoRA performs by far the best. This is expected as LoRa has proven efficacy. Regarding the other methods, it's surprising that such a simple method as Prefix Tuning can outperform IA3 by such a wide margin in one of the models, specially considering IA3 is intended to be an improvement on LoRA. 
 
-Regarding the performance comparison between the two models, it seems \textit{SloBERTa} performs better overall in all experiments. This is to be expected given \textit{SloBERTa} was specifically trianed to perform well in slove. Additionally, it seems that it responds better to PEFT techniques, hinting at the fact that these techniques may not be as efficient when some cross-lingual transfer learning is required, such as the one required to fine-tune the BBMU model.
+Regarding the performance comparison between the two models, it seems \textit{SloBERTa} performs better overall in all experiments. This is to be expected given \textit{SloBERTa} was specifically trained to perform well in slovene. Additionally, it seems that it responds better to PEFT techniques, hinting at the fact that these techniques may not be as efficient when some cross-lingual transfer learning is required, such as the one required to fine-tune the BBMU model.
+
+Finally, we can see a graph of the different models and techniques combinations performance (f1) vs. memory consumption in figure \ref{fig:memory_vs_f1_ner}. We can observe similar results as in the previous NLI task, where the results don't seem to follow the expected logarithmic curve of diminishing returns. Rather, we see a much flatter curve where the same results can be achieved with an extensively reduced memory footprint. The only outlier seems to be BitFit as seen previously, which, while still using limited resources, achieves very poor performance.
+
+\begin{figure}[ht]
+    \centering
+    \includesvg[width=.5\textwidth]{fig/memory_vs_f1_score_ner.svg}
+    \caption{Memory (MB) vs. F1-score for various models and PEFT methods for the NER task. }
+    \label{fig:memory_vs_f1_ner}
+\end{figure}
+
+
 
 \subsection{Dependency Parsing}
 
-Using a different subset from the previous SSJ500k dataset we developed further experiments to evaluate the techniques' performance in Depedency Parsing. In particular, we wanted to predict for each word, the relation to its root. The subset we used contains about 11 400 synthetically annotated sentences with their corresponding dependency tree. Each word has assigned both a relation to its head or root and an index identifying the mentioned root. We used the same experimental setup as in the previous NER task. The results can be seen in table \ref{tab:dependency_parsing-results}.
+Using a different subset from the previous SSJ500k dataset we developed further experiments to evaluate the techniques' performance in Depedency Parsing (DP). In particular, we wanted to predict for each word, the relation to its root. The subset we used contains about 11 400 synthetically annotated sentences with their corresponding dependency tree. Each word has assigned both a relation to its head or root and an index identifying the mentioned root. We used the same experimental setup as in the previous NER task. The results can be seen in table \ref{tab:dependency_parsing-results}.
 
 \begin{table}[ht]
 \centering
-\caption{\textbf{Performance Comparison on SSJ500K's Depedency Parsing subset} The table shows the result of training the {\it SloBERTa} and BBMU models using different PEFT techniques and Full Fine-Tunning (FFT) as a baseline in the Dependency Parsing task subset of the SSJ500k corpus. All results where generated using three training epochs with batches of 32 samples.}
+\caption{\textbf{Performance Comparison on SSJ500K's DP subset} The table shows the result of training the {\it SloBERTa} and BBMU models using different PEFT techniques and Full Fine-Tunning (FFT) as a baseline in the Dependency Parsing task subset of the SSJ500k corpus. All results where generated using three training epochs with batches of 32 samples.}
 \label{tab:dependency_parsing-results}
 \small
 \begin{tabular}{@{}llccc@{}}
 \toprule
-Model & PEFT Method & Precision & F1 Score & Time (s)\\ \midrule
-SloBERTa & FFT & 93.1\% & 93.1\% & 218.6 \\
-SloBERTa & LoRA & 94.0\% & 94.0\% & 174.34 \\
-SloBERTa & Prefix Tuning & 91.1\% & 91.0\% & 150.9 \\
-SloBERTa & IA3 & 92.1\% & 92.0\% & 157.5 \\
-BBMU & FFT & 90.3\% & 90.3\% & 305.5 \\
-BBMU & LoRA & 90.6\% & 90.6\% & 235.4 \\
-BBMU & Prefix Tunning & 85.7\% & 85.3\% & 207.1 \\
-BBMU & IA3 & 86.0\% & 85.6\% & 211.7 \\
+Model & Method & Precision & F1 Score & Time (s)\\ \midrule
+SloBERTa & LoRA & 94.0\% & 94.1\% & 45.6 \\
+SloBERTa & Prefix Tuning & 91\% & 90.9\% & 37.2 \\
+SloBERTa & IA3 & 91.9\% & 91.9\% & 39.3 \\
+SloBERTa & BitFit & 83.7\% & 82.1\% & 77.8 \\
+SloBERTa & FFT & 93.1\% & 93.1\% & 56.0 \\
+BBMU & LoRA & 90.4\% & 90.4\% & 58.3 \\
+BBMU & Prefix Tunning & 85.6\% & 85.3\% & 50.8 \\
+BBMU & IA3 & 85.9\% & 85.5\% & 52.8 \\
+BBMU & BitFit & 78.3\% & 77.0\% & 113.9 \\
+BBMU & FFT & 90.3\% & 90.2\% & 78.7 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-In this task we observe similar results as in the previous one. As before LoRA achieves by far the best results in both models, surpassing FFT with significantly lower training times. However, it seems Prefix Tuning never performs better than IA3. The reason for this may be that the task is relatively more complex, requiring the model to discover deeper relationships between the tokens than in NER, so a more complex approach that focuses on enhancing the attention mechanism of the models may be a better strategy to tackle it. Overall, it seems that PEFT techniques perform quite well, specially with the \textit{SloBERTa} model, obtaining similar or even superior results with significantly reduced training times.
+In this task we observe similar results as in the previous one. LoRA achieves by far the best results in both models, surpassing FFT with significantly lower training times. However, it seems Prefix Tuning never performs better than IA3. The reason for this may be that the task is relatively more complex, requiring the model to discover deeper relationships between the tokens than in NER, so a more complex approach that focuses on enhancing the attention mechanism of the models may be a better strategy to tackle it. Overall, it seems that PEFT techniques perform quite well, specially with the \textit{SloBERTa} model, obtaining similar or even superior results with significantly reduced training times.
 
-Regarding the comparison between the models, similar results are observed as with the NER task: the performance is better in the slovene specific \textit{SloBERTa} and the PEFT methods are less effective in the multilingual model. 
+Regarding the comparison between the models, similar results are observed as with the NER task: performance is better in the slovene specific \textit{SloBERTa} and the PEFT methods are less effective in the multilingual model. Finally, just as in the previous experiments, we can see a comparison between memory consumption and performance for this task in figure \ref{fig:memory_vs_f1_dp}. We see almost the same trend as before, with higher, but similar, performance and slightly lower memory consumption. The only difference is that BitFit performs much better in this task, indicating that BitFit seems to be very sensitive to its particular application: it may achieve good results with reduced memory usage on some very specific tasks, while completely failing in others. Finally, BitFit has by far the highest run time.
+
+\begin{figure}[ht]
+    \centering
+    \includesvg[width=.5\textwidth]{fig/memory_vs_f1_score_dp.svg}
+    \caption{Memory (MB) vs. F1-score for various models and PEFT methods for the DP task. }
+    \label{fig:memory_vs_f1_dp}
+\end{figure}
 
 \subsection{Recognizing Textual Entailment (RTE)}
-In this section, we analyze how LoRA fine tunning influnces over the F1 Scores over the SuperGlue Human based RTE dataset. 
+In this section, we analyze how LoRA fine tunning influnces over the F1 Scores over the SuperGlue Human based RTE dataset from SloBench.
+\begin{table}[ht]
+\centering
+\caption{Performance Comparison on RTE. Mean F1 Score and mean training time over 5 different runs with different seeds.}
+\label{tab:rte_results_general}
+\small
+\begin{tabular}{@{}llcc@{}}
+\toprule
+Model & PEFT Method & F1 Score & Training Time (s) \\ \midrule
+SloBERTa & LoRa & 0.3324 & 17.53 \\
+SloBERTa & Prefix Tuning & 0.5492 & 17.01 \\
+SloBERTa & IA3 & 0.3235 & 87.67 \\
+SloBERTa & BitFit & 0.3919 & 97.94 \\
+SloBERTa & FFT & 0.3710 & 10.58 \\
+BBMU & FFT & 0.3808 & 51.29 \\
+BBMU & BitFit & 0.4783 & 81.78 \\
+BBMU & IA3 & 0.4692 & 84.36 \\
+BBMU & LoRa & 0.6550 & 24.78 \\
+BBMU & Prefix Tuning & 0.4060 & 26.90 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-In this experiment, the \textit{SloBERTa} model is fine-tuned on the RTE dataset utilizing the Low-Rank Adaptation (LoRA) approach to explore the impact of various hyperparameters on the model's performance, particularly focusing on the F1 score. The experiment iteratively tests combinations of three key hyperparameters: \( r \), \( \alpha \), and \textit{weight decay}.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=.5\textwidth]{fig/memory_vs_f1_score_rte_models.pdf}
+    \caption{Memory (\% allocated) vs. F1-score for various models and PEFT methods for the RTE task.}
+    \label{fig:memory_vs_f1_RTE}
+\end{figure}
+
+
+\subsubsection{LoRA hyper-parameter tuning} 
+In the table \ref{tab:rte_results_general} we can observe that models like LoRA have bad performance with this small dataset. For this reason we want to explore a bit more this model and see opportunities of improvement by tweaking some of it's hyper parameters. In this experiment, the \textit{SloBERTa} model is fine-tuned on the RTE dataset utilizing the Low-Rank Adaptation (LoRA) approach to explore the impact of various hyperparameters on the model's performance, particularly focusing on the F1 score. The experiment iteratively tests combinations of three key hyperparameters: \( r \), \( \alpha \), and \textit{weight decay}.
 
 \begin{itemize}
-    \item \textbf{\( r \) (rank):} This parameter determines the rank of the adaptation in LoRA, which affects the model's capacity to learn new patterns without significantly increasing complexity. Values explored were [8, 16, 32], enabling an investigation into how increasing the rank influences learning capacity and generalization.
-    \item \textbf{\( \alpha \) (scaling factor):} This controls the scaling of the updates in LoRA, impacting how aggressively the model adapts to the new dataset. Tested values were [16, 32, 64], providing insights into finding a balance between overly subtle and overly aggressive updates.
+    \item \textbf{\( r \) (rank):} This parameter determines the rank of the adaptation in LoRA\cite{hu2022lora}, which affects the model's capacity to learn new patterns without significantly increasing complexity. Values explored were [8, 16, 32], enabling an investigation into how increasing the rank influences learning capacity and generalization.
+    \item \textbf{\( \alpha \) (scaling factor):} This controls the scaling of the updates in LoRA\cite{hu2022lora}, impacting how aggressively the model adapts to the new dataset. Tested values were [16, 32, 64], providing insights into finding a balance between overly subtle and overly aggressive updates.
     \item \textbf{Weight Decay (regularization):} Used to prevent overfitting by penalizing larger weights, with values set at [0.01, 0.1, 0.2]. This parameter explores how varying levels of regularization affect overfitting and model performance on validation data.
 \end{itemize}
 
@@ -251,7 +311,7 @@ The function used for this experiment orchestrates a grid search over these para
 % Second subfigure
 \begin{subfigure}[b]{0.89\linewidth}
     \centering
-    \includegraphics[width=\textwidth]{r_on_F1_Score.pdf}
+    \includegraphics[width=\textwidth]{fig/r_on_F1_Score.pdf}
     \caption{Influence of $r$ or in the F1-Score}
     \label{fig:image2}
 \end{subfigure}
@@ -259,7 +319,7 @@ The function used for this experiment orchestrates a grid search over these para
 % Third subfigure
 \begin{subfigure}[b]{0.89\linewidth}
     \centering
-    \includegraphics[width=\textwidth]{weight_decay_on_F1_Score.pdf}
+    \includegraphics[width=\textwidth]{fig/weight_decay_on_F1_Score.pdf}
     \caption{Influence of weight decay on thein F1-Score}
     \label{fig:image3}
 \end{subfigure}
@@ -267,146 +327,39 @@ The function used for this experiment orchestrates a grid search over these para
 \caption{Different LoRA fine- tunning configurations, results over the F1 Scores using the SuperGlue Human based RTE dataset}
 \label{fig:lora_params}
 \end{figure}
+\subsubsection{RTE best models}
+In this subsection we want to explore how early stopping can help by doing the correct parameter setting of these models to achieve better results than \ref{tab:rte_results_general}.
+\small
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Method} & \textbf{Patience} & \textbf{Threshold} & \textbf{Eval F1} & \textbf{Epoch} \\
+\midrule
+BitFit & 1 & \(1 \times 10^{-3}\) & 0.53 & 15 \\
+IA3 & 6 & \(1 \times 10^{-2}\) & \textbf{0.77} & 9 \\
+LoRA & 1 & \(1 \times 10^{-2}\) & 0.54 & 3 \\
+Prefix Tuning & 3 & \(1 \times 10^{-1}\) & 0.71 & 4 \\
+\bottomrule
+\end{tabular}
+\caption{Best evaluation F1 Scores for each approach with corresponding epoch, patience, and threshold parameters over SloBERTa model.}
+\label{tab:best_eval_f1_RTE}
+\end{table}
+The aim in the experiments of table \ref{tab:best_eval_f1_RTE} was to identify the best combination of patience and threshold values for early stopping that maximizes the F1 score for each fine-tuning approach. We fine-tuned SloBERTa on a specific dataset using four different parameter-efficient methods: LoRA (Low-Rank Adaptation), Prefix Tuning, IA3 (Incremental Adaptation), and BitFit (Bias Fine-Tuning). For each method, we tested a range of patience and threshold values for early stopping. The patience values tested were [1, 3, 5, 6], and the threshold values were [\(1 \times 10^{-1}\), \(1 \times 10^{-2}\), \(1 \times 10^{-3}\), \(1 \times 10^{-4}\)]. Epoch column in the table shows at which epoch the best F1 score was achieved. The patience parameter specifies the number of epochs to wait for an improvement in the validation loss before stopping the training. Threshold parameter defines the minimum change in the monitored quantity to qualify as an improvement. 
 
+The results indicate that different early stopping parameters significantly affect the performance of the fine-tuning methods. Notably, the IA3 method achieved the highest F1 score of 0.77 with a patience of 6 and a threshold of \(1 \times 10^{-2}\). Prefix Tuning also performed well, with an F1 score of 0.71, using a patience of 3 and a threshold of \(1 \times 10^{-1}\). LoRA and BitFit methods showed moderate performance with the best F1 scores of 0.54 and 0.53, respectively. LoRA achieved its best performance with a patience of 1 and a threshold of \(1 \times 10^{-2}\), while BitFit required a patience of 1 and a much lower threshold of \(1 \times 10^{-3}\) to achieve its best result. 
 
-
-
-% \subsection*{Equations}
-
-% You can write equations inline, e.g. $\cos\pi=-1$, $E = m \cdot c^2$ and $\alpha$, or you can include them as separate objects. The Bayes’s rule is stated mathematically as:
-
-% \begin{equation}
-% 	P(A|B) = \frac{P(B|A)P(A)}{P(B)},
-% 	\label{eq:bayes}
-% \end{equation}
-
-% where $A$ and $B$ are some events. You can also reference it -- the equation \ref{eq:bayes} describes the Bayes's rule.
-
-% \subsection*{Lists}
-
-% We can insert numbered and bullet lists:
-
-% % the [noitemsep] option makes the list more compact
-% \begin{enumerate}[noitemsep] 
-% 	\item First item in the list.
-% 	\item Second item in the list.
-% 	\item Third item in the list.
-% \end{enumerate}
-
-% \begin{itemize}[noitemsep] 
-% 	\item First item in the list.
-% 	\item Second item in the list.
-% 	\item Third item in the list.
-% \end{itemize}
-
-% We can use the description environment to define or describe key terms and phrases.
-
-% \begin{description}
-% 	\item[Word] What is a word?.
-% 	\item[Concept] What is a concept?
-% 	\item[Idea] What is an idea?
-% \end{description}
-
-
-% \subsection*{Random text}
-
-% This text is inserted only to make this template look more like a proper report. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam blandit dictum facilisis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Interdum et malesuada fames ac ante ipsum primis in faucibus. Etiam convallis tellus velit, quis ornare ipsum aliquam id. Maecenas tempus mauris sit amet libero elementum eleifend. Nulla nunc orci, consectetur non consequat ac, consequat non nisl. Aenean vitae dui nec ex fringilla malesuada. Proin elit libero, faucibus eget neque quis, condimentum laoreet urna. Etiam at nunc quis felis pulvinar dignissim. Phasellus turpis turpis, vestibulum eget imperdiet in, molestie eget neque. Curabitur quis ante sed nunc varius dictum non quis nisl. Donec nec lobortis velit. Ut cursus, libero efficitur dictum imperdiet, odio mi fermentum dui, id vulputate metus velit sit amet risus. Nulla vel volutpat elit. Mauris ex erat, pulvinar ac accumsan sit amet, ultrices sit amet turpis.
-
-% Phasellus in ligula nunc. Vivamus sem lorem, malesuada sed pretium quis, varius convallis lectus. Quisque in risus nec lectus lobortis gravida non a sem. Quisque et vestibulum sem, vel mollis dolor. Nullam ante ex, scelerisque ac efficitur vel, rhoncus quis lectus. Pellentesque scelerisque efficitur purus in faucibus. Maecenas vestibulum vulputate nisl sed vestibulum. Nullam varius turpis in hendrerit posuere.
-
-
-% \subsection*{Figures}
-
-% You can insert figures that span over the whole page, or over just a single column. The first one, \figurename~\ref{fig:column}, is an example of a figure that spans only across one of the two columns in the report.
-
-% \begin{figure}[ht]\centering
-% 	\includegraphics[width=\linewidth]{single_column.pdf}
-% 	\caption{\textbf{A random visualization.} This is an example of a figure that spans only across one of the two columns.}
-% 	\label{fig:column}
-% \end{figure}
-
-% On the other hand, \figurename~\ref{fig:whole} is an example of a figure that spans across the whole page (across both columns) of the report.
-
-% % \begin{figure*} makes the figure take up the entire width of the page
-% \begin{figure*}[ht]\centering 
-% 	\includegraphics[width=\linewidth]{whole_page.pdf}
-% 	\caption{\textbf{Visualization of a Bayesian hierarchical model.} This is an example of a figure that spans the whole width of the report.}
-% 	\label{fig:whole}
-% \end{figure*}
-
-
-% \subsection*{Tables}
-
-% Use the table environment to insert tables.
-
-% \begin{table}[hbt]
-% 	\caption{Table of grades.}
-% 	\centering
-% 	\begin{tabular}{l l | r}
-% 		\toprule
-% 		\multicolumn{2}{c}{Name} \\
-% 		\cmidrule(r){1-2}
-% 		First name & Last Name & Grade \\
-% 		\midrule
-% 		John & Doe & $7.5$ \\
-% 		Jane & Doe & $10$ \\
-% 		Mike & Smith & $8$ \\
-% 		\bottomrule
-% 	\end{tabular}
-% 	\label{tab:label}
-% \end{table}
-
-
-% \subsection*{Code examples}
-
-% You can also insert short code examples. You can specify them manually, or insert a whole file with code. Please avoid inserting long code snippets, advisors will have access to your repositories and can take a look at your code there. If necessary, you can use this technique to insert code (or pseudo code) of short algorithms that are crucial for the understanding of the manuscript.
-
-% \lstset{language=Python}
-% \lstset{caption={Insert code directly from a file.}}
-% \lstset{label={lst:code_file}}
-% \lstinputlisting[language=Python]{code/example.py}
-
-% \lstset{language=R}
-% \lstset{caption={Write the code you want to insert.}}
-% \lstset{label={lst:code_direct}}
-% \begin{lstlisting}
-% import(dplyr)
-% import(ggplot)
-
-% ggplot(diamonds,
-% 	   aes(x=carat, y=price, color=cut)) +
-%   geom_point() +
-%   geom_smooth()
-% \end{lstlisting}
-
-%------------------------------------------------
-\iffalse
-\section*{Results}
-
-% Use the results section to present the final results of your work. Present the results in a objective and scientific fashion. Use visualisations to convey your results in a clear and efficient manner. When comparing results between various techniques use appropriate statistical methodology.
-
-% \subsection*{More random text}
-
-% This text is inserted only to make this template look more like a proper report. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam blandit dictum facilisis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Interdum et malesuada fames ac ante ipsum primis in faucibus. Etiam convallis tellus velit, quis ornare ipsum aliquam id. Maecenas tempus mauris sit amet libero elementum eleifend. Nulla nunc orci, consectetur non consequat ac, consequat non nisl. Aenean vitae dui nec ex fringilla malesuada. Proin elit libero, faucibus eget neque quis, condimentum laoreet urna. Etiam at nunc quis felis pulvinar dignissim. Phasellus turpis turpis, vestibulum eget imperdiet in, molestie eget neque. Curabitur quis ante sed nunc varius dictum non quis nisl. Donec nec lobortis velit. Ut cursus, libero efficitur dictum imperdiet, odio mi fermentum dui, id vulputate metus velit sit amet risus. Nulla vel volutpat elit. Mauris ex erat, pulvinar ac accumsan sit amet, ultrices sit amet turpis.
-
-% Phasellus in ligula nunc. Vivamus sem lorem, malesuada sed pretium quis, varius convallis lectus. Quisque in risus nec lectus lobortis gravida non a sem. Quisque et vestibulum sem, vel mollis dolor. Nullam ante ex, scelerisque ac efficitur vel, rhoncus quis lectus. Pellentesque scelerisque efficitur purus in faucibus. Maecenas vestibulum vulputate nisl sed vestibulum. Nullam varius turpis in hendrerit posuere.
-
-% Nulla rhoncus tortor eget ipsum commodo lacinia sit amet eu urna. Cras maximus leo mauris, ac congue eros sollicitudin ac. Integer vel erat varius, scelerisque orci eu, tristique purus. Proin id leo quis ante pharetra suscipit et non magna. Morbi in volutpat erat. Vivamus sit amet libero eu lacus pulvinar pharetra sed at felis. Vivamus non nibh a orci viverra rhoncus sit amet ullamcorper sem. Ut nec tempor dui. Aliquam convallis vitae nisi ac volutpat. Nam accumsan, erat eget faucibus commodo, ligula dui cursus nisi, at laoreet odio augue id eros. Curabitur quis tellus eget nunc ornare auctor.
-
-
-%------------------------------------------------
+These findings suggest that more aggressive early stopping (lower patience and higher threshold) may not always yield the best performance. Instead, a more balanced approach, with moderate patience and threshold values, appears to be more effective for certain fine-tuning methods. This experiment underscores the importance of tuning early stopping parameters to optimize model performance and convergence. These insights can guide future experiments and practical applications involving the fine-tuning of pre-trained models, especially in resource-constrained environments where parameter efficiency is crucial.
 
 \section*{Discussion}
 
-% Use the Discussion section to objectively evaluate your work, do not just put praise on everything you did, be critical and exposes flaws and weaknesses of your solution. You can also explain what you would do differently if you would be able to start again and what upgrades could be done on the project in the future.
+From the experiments and results we obtained, several conclusions can be drawn. Firstly, LoRA consistently emerged as the best performing method across all tasks, which aligns with its proven efficacy in the literature and its widespread use in the industry. Additionally, both IA3 and Prefix Tuning demonstrated competitive performance with LoRA, offering slightly reduced memory footprints. In contrast, BitFit showed inconsistent performance overall, with memory consumption similar to other methods. In some instances, BitFit's performance was notably poor, occasionally dropping to single-digit F1 scores. This outcome is not surprising, as BitFit represents an early and relatively simplistic approach to PEFT. Although it was pioneering at the time of its development, it has been surpassed by more advanced and sophisticated techniques in the rapidly evolving field of PEFT.
 
+Furthermore, it is important to note that PEFT techniques outperformed full fine-tuning (FFT) on multiple occasions during our benchmarks. This demonstrates that PEFT methods not only make large language models (LLMs) and advanced NLP techniques more accessible to lower-end hardware but also enhance performance on high-end systems. Our results show little to no correlation between memory consumption and performance across all tasks and benchmarks, with minor exceptions due to BitFit's inconsistent performance. 
 
-%------------------------------------------------
+Given that this work heavily relied on Slovene benchmarks, a few remarks about cross-lingual learning are pertinent. Notably, SloBERTa outperformed BERT-Base-Multilingual-Uncased (BBMU) in all tasks and across all PEFT techniques. This result is expected, as SloBERTa was specifically trained on the Slovene language.  However, the significant performance improvements seen in BBMU when using PEFT methods highlight the effectiveness of these techniques even in cross-lingual settings. 
 
-\section*{Acknowledgments}
-
-% Here you can thank other persons (advisors, colleagues ...) that contributed to the successful completion of your project.
-\fi
+Finally, we would like to address the sustainability aspect of our work. The widespread use of large language models (LLMs) has a substantial environmental impact~\cite{carbon_footprint} Therefore, adopting PEFT techniques to reduce training time and computational resource requirements represents a significant advancement for the sustainability of the NLP field. The notable reductions in both time and memory usage observed across all models and tasks in our study strongly support this premise. By making NLP more efficient, PEFT techniques not only enhance accessibility but also contribute to more environmentally responsible NLP practices.
 
 %----------------------------------------------------------------------------------------
 %	REFERENCE LIST

@@ -8,18 +8,19 @@ This project focuses on investigating parameter-efficient techniques for fine-tu
 
 This are the jupyter notebooks containing the code to perform the experiments:
 
--   lora_RTE_BERT_multilingual.ipynb, lora_RTE_sloberta.ipynb: Textual Entailment Recognition Benchmarks
--   lora_coreference.ipynb: Coreference benchmark
--   ner_benchmarkv2.ipynb: Name Entity Recognition benchmarks
--   dependency-parsing_benchmark.ipynb: Dependency Parsing Relation Detection benchmark
--   prefix_tuning_BoolIQ.ipynb: Natural Language Understanding Benchmark
--   sentiment_benchmark.ipynb: Sentiment Analysis benchmark
+-   lora_RTE_BERT_multilingual.ipynb, lora_RTE_BMU.py, lora_RTE_sloberta.ipynb.py. : Textual Entailment Recognition Benchmarks
+-   ner_benchmark.ipynb/.py: Name Entity Recognition benchmarks
+-   dependency-parsing_benchmark.ipynb/.py: Dependency Parsing Relation Detection benchmark
+-   prefix_tuning_BoolIQ.ipynb: Natural Language Understanding benchmark
+-   sentiment_benchmark.ipynb/.py: Sentiment Analysis benchmark
+-   nli_benchmark.py: Natural Language Interaction benchmark
+-   run_container.sh: Bash script to run a bechmark script several times in the cluster and record the results.
 
 ### Configuration files
 
 -   sentiment_analysis.def: Apptainer image definition file to upload the sentiment analysis benchmark to an Apptainer enabled cluster.
-
-- conda_base.yaml: Definition file of conda environment used in exeperiments for replicability in the different experimental setups used.
+-   conda_base.yaml: Definition file of conda environment used in exeperiments for replicability in the different experimental setups used.
+-   requirement.txt: In case conda is not available to you, you can use this requirement file to install all dependencies needed to run the project directly into a virtual environment.
 
 ### Report
 

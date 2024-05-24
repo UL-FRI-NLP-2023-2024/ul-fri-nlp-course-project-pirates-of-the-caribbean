@@ -22,16 +22,13 @@ from datasets import Dataset
 from datasets import load_dataset, load_metric
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType, PrefixTuningConfig, IA3Config
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
-import wandb
-
-WANDB_API_KEY = os.environ.get("WANDB_API_KEY", None)
-wandb.login(key=WANDB_API_KEY)
+os.environ["WANDB_DISABLED"] = "true"
 
 model_name = "EMBEDDIA/sloberta"
 # Load the dataset
 dataset = load_dataset('csv', data_files={
-    'train': 'SuperGLUE-HumanT/csv/RTE/train.csv',
-    'validation': 'SuperGLUE-HumanT/csv/RTE/val.csv'
+    'train': 'RTE/train.csv',
+    'validation': 'RTE/val.csv'
 })
 
 # Tokenization
@@ -327,6 +324,36 @@ def run_lora_sloberta(dataset, patience, threshold, model_name="EMBEDDIA/slobert
             f"{current_time},{model_name},RTE-lora,{metrics},{elapsed_training},{memory_usage},{patience}, {threshold}\n"
         )
 
+def run_fully_finetune(dataset, patience, threshold, model_name="EMBEDDIA/sloberta"):
+    task_type = TaskType.SEQ_CLS  # You might need a different TaskType depending on your exact use case
+
+    training_args = TrainingArguments(
+        output_dir=f"{model_name}-RTE",  # Change as needed
+        learning_rate=1e-4,
+        per_device_train_batch_size=16,  # Adjust based on your GPU memory
+        per_device_eval_batch_size=16,
+        num_train_epochs=15,
+        weight_decay=0.1,
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        load_best_model_at_end=True,
+        metric_for_best_model="f1",
+        greater_is_better=True
+    )
+
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)  # Adjust num_labels as needed
+    
+    _, metrics, elapsed_training, memory_usage = fine_tune_model(
+        model_name, model, training_args, dataset, patience, threshold
+    )
+
+    current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
+    with open("results.csv", "a") as f:
+        f.write(
+            f"{current_time},{model_name},RTE-FFT,{metrics},{elapsed_training},{memory_usage},{patience}, {threshold}\n"
+        )
+
+
 # Function to run experiments with a given seed
 def run_experiments_with_seed(seed, dataset, model_name, model_type):
     # Set the seed for reproducibility
@@ -341,13 +368,15 @@ def run_experiments_with_seed(seed, dataset, model_name, model_type):
         run_ia3_sloberta(dataset, patience=6, threshold=0.01, model_name=model_name)
     elif model_type == "bitfit":
         run_bitfit_sloberta(dataset, patience=1, threshold=0.001, model_name=model_name)
+    elif model_type == "fft":
+        run_fully_finetune(dataset, patience=1, threshold=0.001, model_name=model_name)
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
 # Argument parsing
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run fine-tuning experiments with different model types")
-    parser.add_argument("--model_type", type=str, required=True, choices=["lora", "prefix_tune", "ia3", "bitfit"], help="Type of model to run")
+    parser.add_argument("--model_type", type=str, required=True, choices=["lora", "prefix_tune", "ia3", "bitfit", "fft"], help="Type of model to run")
     args = parser.parse_args()
 
     seeds = [42, 123, 456, 789, 1000]  # List of seeds you want to use

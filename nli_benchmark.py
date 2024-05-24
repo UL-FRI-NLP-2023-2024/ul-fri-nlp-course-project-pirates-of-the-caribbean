@@ -11,6 +11,9 @@ from transformers import (
     Trainer,
     TrainingArguments,
     DataCollatorWithPadding,
+    TrainerCallback,
+    TrainerState,
+    TrainerControl
 )
 from sklearn.model_selection import train_test_split
 from datasets import Dataset
@@ -21,21 +24,35 @@ import pandas as pd
 import numpy as np
 import evaluate
 os.environ["WANDB_DISABLED"] = "true"
+import sys
 
 seqeval = evaluate.load("seqeval")
 
 TRAIN_PATH = "SI-NLI/train.tsv"
 TEST_PATH = "SI-NLI/test.tsv"
 
+class MemoryUsageCallback(TrainerCallback):
+    def __init__(self, log_file):
+        self.log_file = log_file.replace('/', '_')
+
+    def on_step_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
+        if torch.cuda.is_available():
+            allocated_memory = torch.cuda.memory_allocated()
+            reserved_memory = torch.cuda.memory_reserved()
+            log_message = f"Step {state.global_step} - Allocated Memory: {allocated_memory}, Reserved Memory: {reserved_memory}"
+            print(log_message)
+            with open('memory_logs/'+self.log_file, "a") as log_f:
+                log_f.write(log_message + "\n")
 
 # In[ ]:
 
+seed = int(sys.argv[1])
+
+# In[5]:
 
 train_dataset = pd.read_csv(TRAIN_PATH, sep="\t")
-train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.1, random_state=42)
-train_dataset, test_dataset = train_test_split(train_dataset, test_size=0.1, random_state=42)
-
-# In[ ]:
+train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.1, random_state=seed)
+train_dataset, test_dataset = train_test_split(train_dataset, test_size=0.1, random_state=seed)
 
 
 def encode_labels(examples):
@@ -99,8 +116,7 @@ def compute_metrics(eval_pred):
 
 # In[ ]:
 
-
-def fine_tune_model(model_name, dataset, model, training_args):
+def fine_tune_model(model_name, dataset, model, training_args, finetune_technique="None"):
 
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
 
@@ -130,6 +146,7 @@ def fine_tune_model(model_name, dataset, model, training_args):
         eval_dataset=tokenized_val_dataset,
         data_collator=data_collator,
         compute_metrics=compute_metrics,
+        callbacks=[MemoryUsageCallback(f"NLI_{finetune_technique}_{model_name}")]
     )
 
     start = time.time()
@@ -140,35 +157,90 @@ def fine_tune_model(model_name, dataset, model, training_args):
 
     print(f"model: {model_name}, Dataset: SI_NLI, Test Metrics: {metrics}")
 
-    model.save_pretrained(f"models/{model_name}si_nli")
-
     return model, metrics, elapsed_training
 
-# In[ ]:
+
+def run_bitfit_sloberta(dataset):
+    model_name = "EMBEDDIA/sloberta"
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_name, num_labels=num_labels,
+    )
+
+    training_args = TrainingArguments(
+        output_dir=f"ner_fully_finetuned_{model_name}",
+        learning_rate=2e-5,
+        per_device_train_batch_size=32,
+        per_device_eval_batch_size=32,
+        num_train_epochs=3,
+        weight_decay=0.01,
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        save_total_limit=2,
+        load_best_model_at_end=True,
+    )
+
+    # Freeze all the parameters
+    for name, param in model.named_parameters():
+        param.requires_grad = False
+
+    # Unfreeze the bias parameters
+    for name, param in model.named_parameters():
+        if 'bias' in name:
+            param.requires_grad = True
+
+    _, metrics, elapsed_training = fine_tune_model(
+        model_name, dataset, model, training_args, finetune_technique="bitfit"
+    )
+    print(f"Training time run_lora_sloberta: {elapsed_training}")
+    current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
+    with open("results_run_bitfit_sloberta.csv", "a") as f:
+        f.write(
+            f"{current_time},{model_name},NLI, {metrics},{elapsed_training}\n"
+        )
 
 
-model_name = models[0]
-model = AutoModelForSequenceClassification.from_pretrained(
-    model_name, num_labels=num_labels
-)
-
-training_args = TrainingArguments(
-    output_dir=f"ner_fully_finetuned_{model_name}",
-    learning_rate=2e-5,
-    per_device_train_batch_size=16,
-    per_device_eval_batch_size=16,
-    num_train_epochs=2,
-    weight_decay=0.01,
-    evaluation_strategy="epoch",
-    save_strategy="epoch",
-    load_best_model_at_end=True,
-)
-
-dataset = {"train": train_dataset, "val": val_dataset, "test": test_dataset}
-model, metrics, elapsed_training =  fine_tune_model(model_name, dataset, model, training_args=training_args)
+run_bitfit_sloberta(dataset = {"train": train_dataset, "val": val_dataset, "test": test_dataset})
 
 
-# In[ ]:
+def run_bitfit_bert(dataset):
+    model_name = "bert-base-multilingual-cased"
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_name, num_labels=num_labels,
+    )
+
+    training_args = TrainingArguments(
+        output_dir=f"ner_fully_finetuned_{model_name}",
+        learning_rate=2e-5,
+        per_device_train_batch_size=32,
+        per_device_eval_batch_size=32,
+        num_train_epochs=3,
+        weight_decay=0.01,
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        save_total_limit=2,
+        load_best_model_at_end=True,
+    )
+
+    # Freeze all the parameters
+    for name, param in model.named_parameters():
+        param.requires_grad = False
+
+    # Unfreeze the bias parameters
+    for name, param in model.named_parameters():
+        if 'bias' in name:
+            param.requires_grad = True
+
+    _, metrics, elapsed_training = fine_tune_model(
+        model_name, dataset, model, training_args, finetune_technique="bitfit"
+    )
+    print(f"Training time run_lora_sloberta: {elapsed_training}")
+    current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
+    with open("results_run_bitfit_bert.csv", "a") as f:
+        f.write(
+            f"{current_time},{model_name},NLI, {metrics},{elapsed_training}\n"
+        )
+
+run_bitfit_bert(dataset = {"train": train_dataset, "val": val_dataset, "test": test_dataset})
 
 
 def fully_finetune_sloberta():
@@ -185,17 +257,17 @@ def fully_finetune_sloberta():
         num_train_epochs=3,
         weight_decay=0.01,
         evaluation_strategy="epoch",
-        save_strategy="epoch",
+        save_strategy="no",
         load_best_model_at_end=True,
     )
 
 
     dataset = {"train": train_dataset, "val": val_dataset, "test": test_dataset}
-    model, metrics, elapsed_training =  fine_tune_model(model_name, dataset, model, training_args=training_args)
+    model, metrics, elapsed_training =  fine_tune_model(model_name, dataset, model, training_args=training_args, finetune_technique="Fully-FT")
     current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
     with open("results_fully_finetune_sloberta.csv", "a") as f:
         f.write(
-            f"{current_time},{model_name},SSJ500-NER, {metrics},{elapsed_training}\n"
+            f"{current_time},{model_name},NLI, {metrics},{elapsed_training}\n"
         )
     print(f"Training time fully_finetune_sloberta: {elapsed_training}")
 
@@ -219,16 +291,16 @@ def fully_finetune_bert():
         num_train_epochs=3,
         weight_decay=0.01,
         evaluation_strategy="epoch",
-        save_strategy="epoch",
+        save_strategy="no",
         load_best_model_at_end=True,
     )
 
     dataset = {"train": train_dataset, "val": val_dataset, "test": test_dataset}
-    model, metrics, elapsed_training =  fine_tune_model(model_name, dataset, model, training_args=training_args)
+    model, metrics, elapsed_training =  fine_tune_model(model_name, dataset, model, training_args=training_args, finetune_technique="Full-FT")
     current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
     with open("results_fully_finetune_bert.csv", "a") as f:
         f.write(
-            f"{current_time},{model_name},FF Dependency, {metrics},{elapsed_training}\n"
+            f"{current_time},{model_name},NLI, {metrics},{elapsed_training}\n"
         )
     print(f"Training time fully_finetune_bert: {elapsed_training}")
 
@@ -249,7 +321,7 @@ def run_lora_sloberta(dataset):
         num_train_epochs=3,
         weight_decay=0.01,
         evaluation_strategy="epoch",
-        save_strategy="epoch",
+        save_strategy="no",
         load_best_model_at_end=True,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -291,13 +363,13 @@ def run_lora_sloberta(dataset):
     model = get_peft_model(model, lora_config)
 
     _, metrics, elapsed_training = fine_tune_model(
-        model_name, dataset, model, training_args
+        model_name, dataset, model, training_args, finetune_technique="LORA"
     )
     print(f"Training time run_lora_sloberta: {elapsed_training}")
     current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
     with open("results_run_lora_sloberta.csv", "a") as f:
         f.write(
-            f"{current_time},{model_name},Dep Parse, {metrics},{elapsed_training}\n"
+            f"{current_time},{model_name},NLI, {metrics},{elapsed_training}\n"
         )
     print(f"Training time run_lora_sloberta: {elapsed_training}")
 
@@ -322,7 +394,7 @@ def run_lora_bert(dataset):
         num_train_epochs=3,
         weight_decay=0.01,
         evaluation_strategy="epoch",
-        save_strategy="epoch",
+        save_strategy="no",
         load_best_model_at_end=True,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -396,7 +468,7 @@ def run_prefix_tune_sloberta(dataset):
         num_train_epochs=3,
         weight_decay=0.01,
         evaluation_strategy="epoch",
-        save_strategy="epoch",
+        save_strategy="no",
         load_best_model_at_end=True,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -427,13 +499,13 @@ def run_prefix_tune_sloberta(dataset):
     model = get_peft_model(model, prefix_config)
 
     _, metrics, elapsed_training = fine_tune_model(
-        model_name, dataset, model, training_args
+        model_name, dataset, model, training_args, finetune_technique="P-tunning"
     )
     print(f"Training time run_prefix_tune_sloberta: {elapsed_training}")
     current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
     with open("results_run_prefix_tune_sloberta.csv", "a") as f:
         f.write(
-            f"{current_time},{model_name},Dependency, {metrics},{elapsed_training}\n"
+            f"{current_time},{model_name},NLI, {metrics},{elapsed_training}\n"
         )
 
 
@@ -458,7 +530,7 @@ def run_prefix_tune_bert(dataset):
         num_train_epochs=3,
         weight_decay=0.01,
         evaluation_strategy="epoch",
-        save_strategy="epoch",
+        save_strategy="no",
         load_best_model_at_end=True,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -489,13 +561,13 @@ def run_prefix_tune_bert(dataset):
     model = get_peft_model(model, prefix_config)
 
     _, metrics, elapsed_training = fine_tune_model(
-        model_name, dataset, model, training_args
+        model_name, dataset, model, training_args, finetune_technique="P-tunning"
     )
     print(f"Training time run_prefix_tune_bert: {elapsed_training}")
     current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
     with open("results_run_prefix_tune_bert.csv", "a") as f:
         f.write(
-            f"{current_time},{model_name},Dependency Parse, {metrics},{elapsed_training}\n"
+            f"{current_time},{model_name},NLI, {metrics},{elapsed_training}\n"
         )
 
 
@@ -519,7 +591,7 @@ def run_ia3_sloberta(dataset):
         num_train_epochs=3,
         weight_decay=0.01,
         evaluation_strategy="epoch",
-        save_strategy="epoch",
+        save_strategy="no",
         load_best_model_at_end=True,
     )
     model = AutoModelForSequenceClassification.from_pretrained( 
@@ -557,13 +629,13 @@ def run_ia3_sloberta(dataset):
     model = get_peft_model(model, ia3_config)
 
     _, metrics, elapsed_training = fine_tune_model(
-        model_name, dataset, model, training_args
+        model_name, dataset, model, training_args, finetune_technique="IA2"
     )
     print(f"Training time run_ia3_sloberta: {elapsed_training}")
     current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
     with open("results_run_ia3_sloberta.csv", "a") as f:
         f.write(
-            f"{current_time},{model_name},Depend Parse, {metrics},{elapsed_training}\n"
+            f"{current_time},{model_name},NLI, {metrics},{elapsed_training}\n"
         )
 
 
@@ -587,7 +659,7 @@ def run_ia3_bert(dataset):
         num_train_epochs=3,
         weight_decay=0.01,
         evaluation_strategy="epoch",
-        save_strategy="epoch",
+        save_strategy="no",
         load_best_model_at_end=True,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -625,13 +697,13 @@ def run_ia3_bert(dataset):
     model = get_peft_model(model, ia3_config)
 
     _, metrics, elapsed_training = fine_tune_model(
-        model_name, dataset, model, training_args
+        model_name, dataset, model, training_args, finetune_technique="IA3"
     )
     print(f"Training time run_ia3_bert: {elapsed_training}")
     current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
     with open("results_run_ia3_bert.csv", "a") as f:
         f.write(
-            f"{current_time},{model_name},Dependency Parse IA3, {metrics},{elapsed_training}\n"
+            f"{current_time},{model_name},NLI, {metrics},{elapsed_training}\n"
         )
 
 

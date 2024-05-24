@@ -22,16 +22,13 @@ from datasets import Dataset
 from datasets import load_dataset, load_metric
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType, PrefixTuningConfig, IA3Config
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
-import wandb
-
-WANDB_API_KEY = os.environ.get("WANDB_API_KEY", None)
-wandb.login(key=WANDB_API_KEY)
+os.environ["WANDB_DISABLED"] = "true"
 
 model_name = "bert-base-multilingual-cased"
 # Load the dataset
 dataset = load_dataset('csv', data_files={
-    'train': 'SuperGLUE-HumanT/csv/RTE/train.csv',
-    'validation': 'SuperGLUE-HumanT/csv/RTE/val.csv'
+    'train': 'RTE/train.csv',
+    'validation': 'RTE/val.csv'
 })
 
 # Tokenization
@@ -133,6 +130,8 @@ def fine_tune_model(model_name, model, training_args, dataset, patience, thresho
 def count_trainable_parameters(model):
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Number of trainable parameters: {trainable_params}")
+
+
 
 def run_prefix_tune_sloberta(dataset, patience, threshold, model_name="EMBEDDIA/sloberta"):
     task_type = TaskType.SEQ_CLS
