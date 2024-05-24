@@ -26,6 +26,18 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.vscode/
+EMBEDDIA/
+SI-NLI/
+SuperGLUE-GoogleMT/
+SuperGLUE-HumanT/
+bert-base-multilingual-cased-RTE/
+bert-base-multilingual-cased_RTE_FINAL/
+bert-base-multilingual-cased-sentinews/
+models/
+results/
+roberta-base-rte_RTE_FINAL/
+wandb/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -127,3 +139,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# csv
+*csv
+.gitignore
