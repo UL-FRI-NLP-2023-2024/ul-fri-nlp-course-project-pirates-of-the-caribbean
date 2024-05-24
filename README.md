@@ -8,13 +8,14 @@ This project focuses on investigating parameter-efficient techniques for fine-tu
 
 This are the jupyter notebooks containing the code to perform the experiments:
 
--   lora_RTE_BERT_multilingual.ipynb, lora_RTE_BMU.py, lora_RTE_sloberta.ipynb.py. : Textual Entailment Recognition Benchmarks
+-   lora_RTE_BERT_multilingual.ipynb, lora_RTE_sloberta.ipynb, lora_rte_BMU.py, lora_rte_sloberta.ipynb.py. : Textual Entailment Recognition Benchmarks
 -   ner_benchmark.ipynb/.py: Name Entity Recognition benchmarks
 -   dependency-parsing_benchmark.ipynb/.py: Dependency Parsing Relation Detection benchmark
 -   prefix_tuning_BoolIQ.ipynb: Natural Language Understanding benchmark
 -   sentiment_benchmark.ipynb/.py: Sentiment Analysis benchmark
 -   nli_benchmark.py: Natural Language Interaction benchmark
 -   run_container.sh: Bash script to run a bechmark script several times in the cluster and record the results.
+-   run_container_rte.sh: Bash script to run the RTE task benchmark, which have a different interface than the rest of benchmarks.
 
 ### Configuration files
 
@@ -24,4 +25,4 @@ This are the jupyter notebooks containing the code to perform the experiments:
 
 ### Report
 
-- The LaTEX source code for the report that summarizes all results obtained can be seen in the report directory. In it, NLP_Report.pdf is the final result of the compiled source. The main code for the report is contained in report.tex.
+- The LaTEX source code for the report that summarizes all results obtained can be seen in the **report** directory. In it, NLP_Report.pdf is the final result of the compiled source. The main code for the report is contained in report.tex.
