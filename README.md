@@ -1,6 +1,6 @@
 # Natural language processing course 2023/24: Parameter-Efficient Fine-Tuning of Language Models
 
-This project focuses on investigating parameter-efficient techniques for fine-tuning large language models, such as Low-Rank Adaptation (LoRA), soft prompts, etc. We compare different approaches across various NLP tasks to assess the efficiency and effectiveness of each fine-tuning strategy. The evaluation will consider model performance, computational efficiency, and adaptability to different tasks. The data used is mainly slovenian corpus sourced from the slobench evaluation framework (https://slobench.cjvt.si/).
+This project focuses on investigating parameter-efficient techniques for fine-tuning large language models, such as Low-Rank Adaptation (LoRA), soft prompts, etc. We compare different approaches across various NLP tasks to assess the efficiency and effectiveness of each fine-tuning strategy. The evaluation considers performance metrics such as precision and f1 scores, computational efficiency (memory used and runtime). The data consists of a set of benchmark of several NLP task (these are: Natural Language Interaction, Name Entity Recognition, Dependency Parsing and Recognition of Entailment) in the slovene languge obtained from the slobench evaluation framework (https://slobench.cjvt.si/).
 
 ## Contents
 
