@@ -14,8 +14,8 @@ This are the jupyter notebooks containing the code to perform the experiments:
 -   prefix_tuning_BoolIQ.ipynb: Natural Language Understanding benchmark
 -   sentiment_benchmark.ipynb/.py: Sentiment Analysis benchmark
 -   nli_benchmark.py: Natural Language Interaction benchmark
--   run_container.sh: Bash script to run a bechmark script several times in the cluster and record the results.
--   run_container_rte.sh: Bash script to run the RTE task benchmark, which have a different interface than the rest of benchmarks.
+-   run_container.sh: Bash script to run a bechmark script several times in a SLURM cluster and record the results.
+-   run_container_rte.sh: Bash script to run the RTE task benchmarks in a SLURM cluster, which have a different interface than the rest of benchmarks.
 
 ### Configuration files
 
