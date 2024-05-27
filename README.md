@@ -28,20 +28,6 @@ This are the jupyter notebooks containing the code to perform the experiments:
 - The LaTEX source code for the report that summarizes all results obtained can be seen in the **report** directory. In it, NLP_Report.pdf is the final result of the compiled source. The main code for the report is contained in report.tex.
 
 
-### Usage
-
-Our training scripts are contained in the .py scripts. To run a benchmark, use the following command in a SLURM cluster:
-
-```
-sbatch run_container.sh [name of benchmark].py
-```
-
-For instance, to run the ner_benchmark use the following command:
-
-```
-sbatch run_container.sh ner_benchmark.py
-```
-
 ### Installation:
 
 To install dependencies you can just use pip:
@@ -62,4 +48,24 @@ Finally, to build a container and install all dependencies use the following com
 mkdir ../containers
 apptainer build ../containers/nlp_benchmark.sif  ../sentiment_analysis.def
 apptainer exec --nv ../containers/nlp_benchmark.sif pip install transformers
+```
+
+### Usage
+
+Our training scripts are contained in the .py scripts. To run a benchmark, use the following command in a SLURM cluster (the script uses internally a nlp_benchmark apptainer image, so you need to build it before executing the script):
+
+```
+sbatch run_container.sh [name of benchmark].py
+```
+
+For instance, to run the ner_benchmark use the following command:
+
+```
+sbatch run_container.sh ner_benchmark.py
+```
+
+You can also run code localy like any other python script assuming you have dependencies installed. To run the the ner_benchmark just use:
+
+```
+python ner_benchmark.py
 ```
