@@ -30,6 +30,8 @@ This are the jupyter notebooks containing the code to perform the experiments:
 
 ### Installation:
 
+#### Locally
+
 To install dependencies you can just use pip:
 
 ```
@@ -42,13 +44,16 @@ Although pip is our preferred package manager for this work, you can also use co
 conda env create -f conda_base.yaml
 ```
 
-Finally, to build a container and install all dependencies use the following command:
+#### Container image
+
+Assuming you have a working apptainer or singularity installation, to build the project's container and install all dependencies use the following command:
 
 ```
-mkdir ../containers
-apptainer build ../containers/nlp_benchmark.sif  ../sentiment_analysis.def
-apptainer exec --nv ../containers/nlp_benchmark.sif pip install transformers
+mkdir containers
+apptainer build containers/nlp_benchmark.sif  sentiment_analysis.def
 ```
+
+This is the recommended way of installing the experimental environment for reproducible results.
 
 ### Usage
 
