@@ -1,20 +1,27 @@
 Bootstrap: docker
-From: pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime
+From: nvidia/cuda:11.0.3-base-ubuntu20.04
 
 %post
     # Install necessary packages
-    apt-get update && apt-get install -y git wget
+    apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        git \
+        python3-pip \
+        python3-dev \
+        python3-opencv \
+        libglib2.0-0
 
+    DEBIAN_FRONTEND=noninteractive pip install --upgrade pip
     # Install Python dependencies
-    pip install transformers datasets scikit-learn peft jupyter
+    pip install networkx==3.1
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+    pip install --upgrade numpy
+    pip install transformers datasets scikit-learn jupyter evaluate seqeval
+    pip install git+https://github.com/huggingface/peft
 
-    # Clone the repository containing the notebook
-    git clone git@github.com:UL-FRI-NLP-2023-2024/ul-fri-nlp-course-project-pirates-of-the-caribbean.git
-    git checkout senti-bm
 
 %environment
     # Set environment variables if needed
-    export TRANSFORMERS_CACHE=/transformers-cache
+    export TRANSFORMERS_CACHE=/d/hpc/projects/FRI/jf73497/transformers-cache
 
 %runscript
     # Set the default command to run when the container starts
